@@ -35,7 +35,10 @@ const AnalyticsDashboard = () => {
         '681167b9-6537-487a-a340-2d77245c080d',
         '76eae254-4658-4cb0-bb6f-2c4e90905f46',
         'f2163b04-188a-4c7d-bb11-f939d0d214e9',
-        '6b0a5dab-4571-4869-ac40-139d63b93d4e'
+        '6b0a5dab-4571-4869-ac40-139d63b93d4e',
+        'bf1533e9-47a8-44fb-a190-706141ee5de7', // Tom
+        'fe8a5e25-b690-4e59-988d-a44d286f5b4e', // Xander
+        '8b883821-0441-445d-8860-6e680bdf0100', // Jose
     ];
 
     // Further filter out test users
@@ -143,7 +146,7 @@ function generateLineChartData() {
   // get current date and time
   const now = new Date();
 
-  const fiveDaysAgo = new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
@@ -153,7 +156,7 @@ function generateLineChartData() {
 
     const createdDate = new Date(created_at);
     // exclude entries older than 5 days
-    if (createdDate < fiveDaysAgo) return;
+    if (createdDate < weekAgo) return;
 
     // format the date to just be YYYY-MM-DD
     const date = createdDate.toISOString().split('T')[0];
@@ -192,14 +195,14 @@ function generateUserChartData(targetType) {
   // Get current date and time
   const now = new Date();
   // Subtract 3 days from the current date and time
-  const fiveDaysAgo = new Date(now.getTime() - (3 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
 
   data.forEach((entry) => {
     const { type, user, created_at } = entry;
 
     const createdDate = new Date(created_at);
     // Exclude entries older than 3 days and types that are not the target
-    if (createdDate < fiveDaysAgo || type !== targetType) return;
+    if (createdDate < weekAgo || type !== targetType) return;
 
     if (!userData[user]) {
       userData[user] = 1;
@@ -231,8 +234,8 @@ function generateActiveUsersData() {
   // get current date and time
   const now = new Date();
 
-  // subtract 5 days from the current date and time
-  const fiveDaysAgo = new Date(now.getTime() - (5 * 24 * 60 * 60 * 1000));
+  // subtract 7 days from the current date and time
+  const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
@@ -240,7 +243,7 @@ function generateActiveUsersData() {
 
     const createdDate = new Date(created_at);
     // exclude entries older than 3 days
-    if (createdDate < fiveDaysAgo) return;
+    if (createdDate < weekAgo) return;
 
     // format the date to just be YYYY-MM-DD
     const date = createdDate.toISOString().split('T')[0];
