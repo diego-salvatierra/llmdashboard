@@ -3,10 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 import { useTable } from "react-table";
 import { BarChart, LineChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
 
-const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
 
 
 const AnalyticsDashboard = () => {
@@ -146,7 +146,7 @@ function generateLineChartData() {
   // get current date and time
   const now = new Date();
 
-  const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (19 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
@@ -170,6 +170,8 @@ function generateLineChartData() {
     } else {
       lineData[date][type] = 1;
     }
+
+
   });
 
   // Sort the entries by date
@@ -195,7 +197,7 @@ function generateUserChartData(targetType) {
   // Get current date and time
   const now = new Date();
   // Subtract 3 days from the current date and time
-  const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (19 * 24 * 60 * 60 * 1000));
 
   data.forEach((entry) => {
     const { type, user, created_at } = entry;
@@ -235,7 +237,7 @@ function generateActiveUsersData() {
   const now = new Date();
 
   // subtract 7 days from the current date and time
-  const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (19 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
@@ -267,14 +269,33 @@ function generateActiveUsersData() {
 function generateUsersData() {
   let usersData = {};
 
+  // set the end date to the end of the current day
+  const endDate = new Date();
+  endDate.setHours(23, 59, 59, 999);
+
+  // set the start date to the start of July 5, 2023
+  const startDate = new Date('2023-07-05T00:00:00Z');
+  startDate.setHours(0, 0, 0, 0);
+
   data.forEach((entry) => {
     const { user, created_at } = entry;
+
+    const createdDate = new Date(created_at);
+
+    // Exclude entries older than start date and newer than end date
+    if (createdDate < startDate || createdDate > endDate) return;
+
     // Transform date to only consider the date part without the time
-    const date = new Date(created_at).toISOString().split('T')[0];
+    const date = createdDate.toISOString().split('T')[0];
     if (!usersData[user]) {
       usersData[user] = new Set([date]);
     } else {
       usersData[user].add(date);
+    }
+
+    // Add console log for specific user
+    if (user === 'a0b6ab7c-c831-4382-9585-8b57484dbf97') {
+      console.log(`User ${user} activity on ${date}`);
     }
   });
 
@@ -282,18 +303,18 @@ function generateUsersData() {
     '1': 0,
     '2': 0,
     '3': 0,
-    '4': 0,
-    '5+': 0,
+    '4+': 0,
   };
 
   Object.values(usersData).forEach((dates) => {
     const activeDays = dates.size;
-    if (activeDays <= 4) {
+    if (activeDays >= 1 && activeDays <= 3) {
       activityData[activeDays.toString()]++;
-    } else {
-      activityData['5+']++;
+    } else if (activeDays >= 4) {
+      activityData['4+']++;
     }
   });
+
 
   // Transform data to format suitable for charting
   const chartData = Object.entries(activityData).map(([days, count]) => {
@@ -302,6 +323,7 @@ function generateUsersData() {
 
   return chartData;
 }
+
 
 
    const chartData = generateChartData();
@@ -319,7 +341,38 @@ function generateUsersData() {
   
     return null;
   };
+
+  function generateSpecificUserChartData(userId) {
+    let userData = {};
   
+    // set the start date to July 6, 2023
+    const startDate = new Date('2023-07-06T00:00:00');
+  
+    data.forEach((entry) => {
+      const { type, user, created_at } = entry;
+  
+      const createdDate = new Date(created_at);
+      // Exclude entries older than the start date, types that are not 'fixer', and users that are not the specified user
+      if (createdDate < startDate || type !== 'fixer' || user !== userId) return;
+  
+      // format the date and hour to be YYYY-MM-DDTHH
+      const date = `${createdDate.toISOString().split(':')[0]}:00`;
+  
+      if (!userData[date]) {
+        userData[date] = 1;
+      } else {
+        userData[date]++;
+      }
+    });
+  
+    // Convert our data from the {date: count} format to {date, calls} format
+    return Object.entries(userData)
+      .map(([date, calls]) => ({ date, calls }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }
+    
+  
+  const specificUserFixerData = generateSpecificUserChartData('a0b6ab7c-c831-4382-9585-8b57484dbf97');  
 
   return (
     <>
@@ -490,6 +543,27 @@ function generateUsersData() {
   <Legend />
   <Bar dataKey="calls" fill="#8884d8" />
 </BarChart>
+
+<h2>Builder usage by specific user over time</h2>
+<BarChart
+  width={2000}
+  height={300}
+  data={specificUserFixerData}
+  margin={{
+    top: 20,
+    right: 30,
+    left: 20,
+    bottom: 5
+  }}
+>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="date" />
+  <YAxis />
+  <Tooltip />
+  <Legend />
+  <Bar dataKey="calls" fill="#8884d8" />
+</BarChart>
+
 
       <h2>API Calls</h2>
       <table {...getTableProps()} style={{margin: "auto"}}>
