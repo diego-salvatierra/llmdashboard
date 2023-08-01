@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { useTable } from "react-table";
 import { BarChart, LineChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import HeatMap from 'react-heatmap-grid';
 
-const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
 const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -146,7 +147,7 @@ function generateLineChartData() {
   // get current date and time
   const now = new Date();
 
-  const weekAgo = new Date(now.getTime() - (19 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (23 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
@@ -374,6 +375,137 @@ function generateUsersData() {
   
   const specificUserFixerData = generateSpecificUserChartData('a0b6ab7c-c831-4382-9585-8b57484dbf97');  
 
+  // retention chart 
+
+  // Assuming the data is ordered by 'created_at'
+function generateCohorts(eventType) {
+  let cohorts = {};
+
+  data.forEach((entry) => {
+    // If an eventType is given and the entry's type doesn't match, skip this entry
+    if (eventType && entry.type !== eventType) {
+      return;
+    }
+
+    const { user, created_at } = entry;
+    const date = new Date(created_at).toISOString().split('T')[0];
+
+    // If the user doesn't have a cohort yet, create one
+    if (!cohorts[user]) {
+      cohorts[user] = { startDate: date, activityDates: new Set([date]) };
+    } else {
+      // If the user is already part of a cohort, add the new date to the set
+      cohorts[user].activityDates.add(date);
+    }
+  });
+
+  // Now we have our cohorts. Next, we build our retention table
+
+  let retentionTable = {};
+  Object.values(cohorts).forEach(({ startDate, activityDates }) => {
+    if (!retentionTable[startDate]) {
+      retentionTable[startDate] = { cohortSize: 1, activityByDay: {}, totalUsers: 1 }; // Added 'totalUsers'
+    } else {
+      retentionTable[startDate].cohortSize++;
+      retentionTable[startDate].totalUsers++; // Increment 'totalUsers'
+    }
+
+    // Register the activity of the user for each day
+    activityDates.forEach((date) => {
+      // Calculate the difference in days between the start date and the current date
+      const diffInDays =
+        (new Date(date) - new Date(startDate)) / (1000 * 60 * 60 * 24);
+
+      if (!retentionTable[startDate].activityByDay[diffInDays]) {
+        retentionTable[startDate].activityByDay[diffInDays] = 1;
+      } else {
+        retentionTable[startDate].activityByDay[diffInDays]++;
+      }
+    });
+  });
+
+  // Finally, we calculate the retention for each cohort for each day
+  for (const [startDate, { cohortSize, activityByDay }] of Object.entries(
+    retentionTable
+  )) {
+    for (const [day, activity] of Object.entries(activityByDay)) {
+      // The retention rate is the activity of the cohort on that day divided by the size of the cohort
+      retentionTable[startDate].activityByDay[day] = activity / cohortSize;
+    }
+  }
+
+  return retentionTable;
+}
+
+const fixerCohort = generateCohorts('fixer');
+const gptChatCohort = generateCohorts('gptChat');
+const sayWhisperCohort = generateCohorts('sayWhisper');
+const allUsersCohort = generateCohorts();
+
+
+
+function CustomHeatMap({ data, xLabels, yLabels, userCounts }) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th></th>
+          <th>User Count</th>
+          {xLabels.map((xLabel, i) => (
+            <th key={i} style={{fontSize: '12px'}}>{xLabel}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {data.map((row, i) => (
+          <tr key={i}>
+            <td style={{fontSize: '12px'}}>{yLabels[i]}</td>
+            <td style={{fontSize: '12px'}}>{userCounts[i]}</td>
+            {row.map((value, j) => (
+              <td key={j} style={{
+                backgroundColor: `rgba(66, 86, 244, ${1 - (1 - value) / 1})`, 
+                fontSize: '12px'
+              }}>
+                {value && `${(value * 100).toFixed(0)}%`}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function CohortHeatMap({ cohortData }) {
+  const startDateList = Object.keys(cohortData);
+  
+  // Ensure the dates are sorted
+  startDateList.sort();
+  
+  // Get the maximum day count in all cohorts
+  const maxDayCount = Math.max(...startDateList.map(startDate => 
+    Math.max(...Object.keys(cohortData[startDate].activityByDay))
+  ));
+  
+  const xLabels = Array.from({ length: maxDayCount + 1 }, (_, i) => i);
+  const yLabels = startDateList;
+  const userCounts = startDateList.map(startDate => cohortData[startDate].totalUsers);
+  const data = startDateList.map(startDate => 
+    Array.from({ length: maxDayCount + 1 }, (_, i) => cohortData[startDate].activityByDay[i] || 0)
+  );
+
+  return (
+    <CustomHeatMap
+      xLabels={xLabels}
+      yLabels={yLabels}
+      data={data}
+      userCounts={userCounts}
+    />
+  );
+}
+
+
+
   return (
     <>
       <h1>OpenAI API Call Analytics</h1>
@@ -563,6 +695,24 @@ function generateUsersData() {
   <Legend />
   <Bar dataKey="calls" fill="#8884d8" />
 </BarChart>
+
+<div>
+
+<h1>Overall Retention Cohort</h1>
+  <CohortHeatMap cohortData={allUsersCohort} />
+  
+  <h1>Fixer Retention Cohort</h1>
+  <CohortHeatMap cohortData={fixerCohort} />
+  
+  <h1>GptChat Retention Cohort</h1>
+  <CohortHeatMap cohortData={gptChatCohort} />
+
+  <h1>SayWhisper Retention Cohort</h1>
+  <CohortHeatMap cohortData={sayWhisperCohort} />
+
+  
+
+</div>
 
 
       <h2>API Calls</h2>
