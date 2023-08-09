@@ -238,7 +238,7 @@ function generateActiveUsersData() {
   const now = new Date();
 
   // subtract 7 days from the current date and time
-  const weekAgo = new Date(now.getTime() - (19 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (40 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
