@@ -34,6 +34,7 @@ const AnalyticsDashboard = () => {
         '78673c9a-6e61-4d23-892e-be594868a83b',
         'e89436e3-8a54-4eee-bb06-050079400705',
         '681167b9-6537-487a-a340-2d77245c080d',
+        '6e590b5f-e429-4e3c-81d1-c0022241a56d', // current expo testing
         '76eae254-4658-4cb0-bb6f-2c4e90905f46',
         'f2163b04-188a-4c7d-bb11-f939d0d214e9',
         '6b0a5dab-4571-4869-ac40-139d63b93d4e',
@@ -147,7 +148,7 @@ function generateLineChartData() {
   // get current date and time
   const now = new Date();
 
-  const weekAgo = new Date(now.getTime() - (23 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
@@ -198,7 +199,7 @@ function generateUserChartData(targetType) {
   // Get current date and time
   const now = new Date();
   // Subtract 3 days from the current date and time
-  const weekAgo = new Date(now.getTime() - (19 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
 
   data.forEach((entry) => {
     const { type, user, created_at } = entry;
@@ -238,7 +239,7 @@ function generateActiveUsersData() {
   const now = new Date();
 
   // subtract 7 days from the current date and time
-  const weekAgo = new Date(now.getTime() - (40 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
