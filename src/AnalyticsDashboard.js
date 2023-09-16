@@ -477,7 +477,7 @@ function CustomHeatMap({ data, xLabels, yLabels, userCounts }) {
   );
 }
 
-function CohortHeatMap({ cohortData }) {
+/*function CohortHeatMap({ cohortData }) {
   const startDateList = Object.keys(cohortData);
   
   // Ensure the dates are sorted
@@ -503,6 +503,110 @@ function CohortHeatMap({ cohortData }) {
       userCounts={userCounts}
     />
   );
+} */
+
+function CohortHeatMap({ cohortData }) {
+    const startDateList = Object.keys(cohortData);
+  
+    // Ensure the dates are sorted
+    startDateList.sort();
+  
+    // Get the maximum day count in all cohorts
+    const maxDayCount = Math.max(...startDateList.map(startDate => 
+      Math.max(...Object.keys(cohortData[startDate].activityByDay))
+    ));
+  
+    const xLabels = Array.from({ length: maxDayCount + 1 }, (_, i) => i);
+    const yLabels = startDateList;
+    const userCounts = startDateList.map(startDate => cohortData[startDate].totalUsers);
+    const data = startDateList.map(startDate => 
+      Array.from({ length: maxDayCount + 1 }, (_, i) => cohortData[startDate].activityByDay[i] || 0)
+    );
+    
+    const retentionMetrics = calculateD1D3Retention(cohortData);
+
+    return (
+      <div>
+        {/* Overall D1 and D3 Metrics Display */}
+        <div style={{ marginBottom: '10px', fontSize: '18px' }}>
+          <strong>Overall D1 Retention:</strong> {retentionMetrics.d1Overall}%
+          <br />
+          <strong>Overall D3 Retention:</strong> {retentionMetrics.d3Overall}%
+        </div>
+
+        {/* Pre-July 25th D1 and D3 Metrics Display */}
+        <div style={{ marginBottom: '10px', fontSize: '18px' }}>
+          <strong>D1 Retention (Pre-July 25th):</strong> {retentionMetrics.d1PreJuly25}%
+          <br />
+          <strong>D3 Retention (Pre-July 25th):</strong> {retentionMetrics.d3PreJuly25}%
+          <br />
+          <strong>Total Users (Pre-July 25th):</strong> {retentionMetrics.totalUsersPreJuly25}
+        </div>
+
+        {/* Post-July 25th D1 and D3 Metrics Display */}
+        <div style={{ marginBottom: '20px', fontSize: '18px' }}>
+          <strong>D1 Retention (Post-July 24th):</strong> {retentionMetrics.d1PostJuly24}%
+          <br />
+          <strong>D3 Retention (Post-July 24th):</strong> {retentionMetrics.d3PostJuly24}%
+          <br />
+          <strong>Total Users (Post-July 24th):</strong> {retentionMetrics.totalUsersPostJuly24}
+        </div>
+
+        {/* Cohort HeatMap */}
+        <CustomHeatMap
+          xLabels={xLabels}
+          yLabels={yLabels}
+          data={data}
+          userCounts={userCounts}
+        />
+      </div>
+    );
+}
+
+function calculateD1D3Retention(cohorts) {
+    let totalUsersDay0 = 0;
+    let totalUsersDay1 = 0;
+    let totalUsersDay3 = 0;
+
+    let totalUsersDay0PreJuly25 = 0;
+    let totalUsersDay1PreJuly25 = 0;
+    let totalUsersDay3PreJuly25 = 0;
+
+    let totalUsersDay0PostJuly24 = 0;
+    let totalUsersDay1PostJuly24 = 0;
+    let totalUsersDay3PostJuly24 = 0;
+
+    for (const [startDate, cohort] of Object.entries(cohorts)) {
+      const totalUsersForThisCohort = cohort.totalUsers; // This is the total number of users in the cohort on D0.
+  
+      totalUsersDay0 += totalUsersForThisCohort;
+      totalUsersDay1 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
+      totalUsersDay3 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
+  
+      if (new Date(startDate) < new Date("2023-07-25")) {
+          totalUsersDay0PreJuly25 += totalUsersForThisCohort;
+          totalUsersDay1PreJuly25 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
+          totalUsersDay3PreJuly25 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
+      } else {
+          totalUsersDay0PostJuly24 += totalUsersForThisCohort;
+          totalUsersDay1PostJuly24 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
+          totalUsersDay3PostJuly24 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
+      }
+  }
+  
+
+    return {
+        d1Overall: ((totalUsersDay1 / totalUsersDay0) * 100).toFixed(2),
+        d3Overall: ((totalUsersDay3 / totalUsersDay0) * 100).toFixed(2),
+
+        d1PreJuly25: ((totalUsersDay1PreJuly25 / totalUsersDay0PreJuly25) * 100).toFixed(2),
+        d3PreJuly25: ((totalUsersDay3PreJuly25 / totalUsersDay0PreJuly25) * 100).toFixed(2),
+        totalUsersPreJuly25: totalUsersDay0PreJuly25,
+
+        d1PostJuly24: ((totalUsersDay1PostJuly24 / totalUsersDay0PostJuly24) * 100).toFixed(2),
+        d3PostJuly24: ((totalUsersDay3PostJuly24 / totalUsersDay0PostJuly24) * 100).toFixed(2),
+        totalUsersPostJuly24: totalUsersDay0PostJuly24
+    };
 }
 
 
