@@ -34,7 +34,8 @@ const AnalyticsDashboard = () => {
         '78673c9a-6e61-4d23-892e-be594868a83b',
         'e89436e3-8a54-4eee-bb06-050079400705',
         '681167b9-6537-487a-a340-2d77245c080d',
-        '6e590b5f-e429-4e3c-81d1-c0022241a56d', // current expo testing
+        '6e590b5f-e429-4e3c-81d1-c0022241a56d', // testingsayapp@gmail.com
+        '934e4272-61ec-4d7b-a489-1c17843392f3', // saytestingsay@gmail.com
         '76eae254-4658-4cb0-bb6f-2c4e90905f46',
         'f2163b04-188a-4c7d-bb11-f939d0d214e9',
         '6b0a5dab-4571-4869-ac40-139d63b93d4e',
@@ -239,7 +240,7 @@ function generateActiveUsersData() {
   const now = new Date();
 
   // subtract 7 days from the current date and time
-  const weekAgo = new Date(now.getTime() - (60 * 24 * 60 * 60 * 1000));
+  const weekAgo = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
 
 
   data.forEach((entry) => {
@@ -609,6 +610,125 @@ function calculateD1D3Retention(cohorts) {
     };
 }
 
+function generateMAUData() {
+  let mauData = {};
+
+  data.forEach((entry) => {
+    const { user, created_at } = entry;
+    const createdDate = new Date(created_at);
+
+    // Get the month and year for the entry
+    const year = createdDate.getFullYear();
+    const month = createdDate.getMonth() + 1; // Months are 0-indexed, so add 1
+
+    const monthKey = `${year}-${month.toString().padStart(2, '0')}`; // format as YYYY-MM
+
+    if (!mauData[monthKey]) {
+      mauData[monthKey] = new Set(); // use a Set to store unique user values
+    }
+
+    mauData[monthKey].add(user); // add the user to the Set
+  });
+
+  // convert our data from the {monthKey: Set} format to {month, count} format
+  return Object.entries(mauData).map(([month, users]) => {
+    return {
+      month,
+      count: users.size, // the size property of a Set gives the number of unique elements
+    };
+  });
+}
+
+const mauData = generateMAUData();
+
+
+function generateSessionData() {
+  let userSessions = {};
+  const sessionDurations = [];
+
+  const relevantTypes = ["gptChat", "fixer", "sayWhisper", "explainer"];
+
+  // Filter data for relevant types
+  const relevantData = data.filter(entry => relevantTypes.includes(entry.type));
+
+
+  // Sort data by user and timestamp
+  const sortedData = [...relevantData].sort((a, b) => {
+    if (a.user && b.user) {
+      if (a.user === b.user) {
+        return new Date(a.created_at) - new Date(b.created_at);
+      }
+      return a.user.localeCompare(b.user);
+    }
+    if (!a.user && !b.user) return 0; // if both users are null or undefined, consider them equal
+    if (!a.user) return -1; // if a.user is null or undefined, it should come before b.user
+    return 1; // if b.user is null or undefined, a.user should come before it
+  });
+  
+
+  sortedData.forEach((entry) => {
+    const { user, created_at } = entry;
+    if (!userSessions[user]) {
+      userSessions[user] = [];
+    }
+
+    const currentTimestamp = new Date(created_at);
+    if (userSessions[user].length) {
+      const lastTimestamp = new Date(userSessions[user][userSessions[user].length - 1]);
+      const diffInMinutes = (currentTimestamp - lastTimestamp) / (60 * 1000);
+
+      if (diffInMinutes > 5) {
+        userSessions[user].push(created_at);
+      }
+    } else {
+      userSessions[user].push(created_at);
+    }
+  });
+
+  Object.values(userSessions).forEach(sessions => {
+    if (sessions.length === 1) {
+      // Assumption: users with only one event had a session of less than 5 minutes
+      sessionDurations.push(1);
+    } else {
+      for (let i = 0; i < sessions.length - 1; i++) {
+        const durationInMinutes = (new Date(sessions[i + 1]) - new Date(sessions[i])) / (60 * 1000);
+        sessionDurations.push(durationInMinutes);
+      }
+    }
+  });
+  
+
+  // Now, bucket these durations into bins for the histogram.
+  const bins = {
+    '<5m': 0,
+    '5-10m': 0,
+    '10-30m': 0,
+    '30-60m': 0,
+    '1h+': 0,
+  };
+
+  sessionDurations.forEach(duration => {
+    if (duration < 5) {
+      bins['<5m']++;
+    } else if (duration >= 5 && duration < 10) {
+      bins['5-10m']++;
+    } else if (duration >= 10 && duration < 30) {
+      bins['10-30m']++;
+    } else if (duration >= 30 && duration < 60) {
+      bins['30-60m']++;
+    } else {
+      bins['1h+']++;
+    }
+  });
+
+  // Transform bins data for charting.
+  const chartData = Object.entries(bins).map(([range, count]) => {
+    return { name: range, count };
+  });
+
+  return chartData;
+}
+
 
 
   return (
@@ -696,6 +816,48 @@ function calculateD1D3Retention(cohorts) {
   <Legend />
   <Bar dataKey="count" name="Active Users" fill={getRandomColor()} />
 </BarChart>
+
+<h2>Active Users Per Month</h2>
+<BarChart
+  width={1500}
+  height={300}
+  data={mauData}
+  margin={{
+    top: 20,
+    right: 30,
+    left: 20,
+    bottom: 5,
+  }}
+>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="month" />
+  <YAxis />
+  <Tooltip />
+  <Legend />
+  <Bar dataKey="count" name="Active Users" fill={getRandomColor()} />
+</BarChart>
+
+<h2>Session Duration Distribution</h2>
+<BarChart
+  width={1500}
+  height={300}
+  data={generateSessionData()}
+  margin={{
+    top: 20,
+    right: 30,
+    left: 20,
+    bottom: 5,
+  }}
+>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="name" />
+  <YAxis />
+  <Tooltip />
+  <Legend />
+  <Bar dataKey="count" fill="#82ca9d" />
+</BarChart>
+
+
 
 <h2>User Activity</h2>
 <BarChart
@@ -800,6 +962,8 @@ function calculateD1D3Retention(cohorts) {
   <Legend />
   <Bar dataKey="calls" fill="#8884d8" />
 </BarChart>
+
+
 
 <div>
 
