@@ -544,13 +544,22 @@ function CohortHeatMap({ cohortData }) {
           <strong>Total Users (Pre-July 25th):</strong> {retentionMetrics.totalUsersPreJuly25}
         </div>
 
-        {/* Post-July 25th D1 and D3 Metrics Display */}
+        {/* July 25th to September 20th D1 and D3 Metrics Display */}
+        <div style={{ marginBottom: '10px', fontSize: '18px' }}>
+          <strong>D1 Retention (July 25th to September 20th):</strong> {retentionMetrics.d1July25ToSep20}%
+          <br />
+          <strong>D3 Retention (July 25th to September 20th):</strong> {retentionMetrics.d3July25ToSep20}%
+          <br />
+          <strong>Total Users (July 25th to September 20th):</strong> {retentionMetrics.totalUsersJuly25ToSep20}
+        </div>
+
+        {/* Post-September 20th D1 and D3 Metrics Display */}
         <div style={{ marginBottom: '20px', fontSize: '18px' }}>
-          <strong>D1 Retention (Post-July 24th):</strong> {retentionMetrics.d1PostJuly24}%
+          <strong>D1 Retention (Post-September 20th):</strong> {retentionMetrics.d1PostSep20}%
           <br />
-          <strong>D3 Retention (Post-July 24th):</strong> {retentionMetrics.d3PostJuly24}%
+          <strong>D3 Retention (Post-September 20th):</strong> {retentionMetrics.d3PostSep20}%
           <br />
-          <strong>Total Users (Post-July 24th):</strong> {retentionMetrics.totalUsersPostJuly24}
+          <strong>Total Users (Post-September 20th):</strong> {retentionMetrics.totalUsersPostSep20}
         </div>
 
         {/* Cohort HeatMap */}
@@ -565,50 +574,62 @@ function CohortHeatMap({ cohortData }) {
 }
 
 function calculateD1D3Retention(cohorts) {
-    let totalUsersDay0 = 0;
-    let totalUsersDay1 = 0;
-    let totalUsersDay3 = 0;
+  let totalUsersDay0 = 0;
+  let totalUsersDay1 = 0;
+  let totalUsersDay3 = 0;
 
-    let totalUsersDay0PreJuly25 = 0;
-    let totalUsersDay1PreJuly25 = 0;
-    let totalUsersDay3PreJuly25 = 0;
+  let totalUsersDay0PreJuly25 = 0;
+  let totalUsersDay1PreJuly25 = 0;
+  let totalUsersDay3PreJuly25 = 0;
 
-    let totalUsersDay0PostJuly24 = 0;
-    let totalUsersDay1PostJuly24 = 0;
-    let totalUsersDay3PostJuly24 = 0;
+  let totalUsersDay0July25ToSep20 = 0;
+  let totalUsersDay1July25ToSep20 = 0;
+  let totalUsersDay3July25ToSep20 = 0;
 
-    for (const [startDate, cohort] of Object.entries(cohorts)) {
-      const totalUsersForThisCohort = cohort.totalUsers; // This is the total number of users in the cohort on D0.
-  
-      totalUsersDay0 += totalUsersForThisCohort;
-      totalUsersDay1 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
-      totalUsersDay3 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
-  
-      if (new Date(startDate) < new Date("2023-07-25")) {
-          totalUsersDay0PreJuly25 += totalUsersForThisCohort;
-          totalUsersDay1PreJuly25 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
-          totalUsersDay3PreJuly25 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
-      } else {
-          totalUsersDay0PostJuly24 += totalUsersForThisCohort;
-          totalUsersDay1PostJuly24 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
-          totalUsersDay3PostJuly24 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
-      }
+  let totalUsersDay0PostSep20 = 0;
+  let totalUsersDay1PostSep20 = 0;
+  let totalUsersDay3PostSep20 = 0;
+
+  for (const [startDate, cohort] of Object.entries(cohorts)) {
+    const totalUsersForThisCohort = cohort.totalUsers;
+
+    totalUsersDay0 += totalUsersForThisCohort;
+    totalUsersDay1 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
+    totalUsersDay3 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
+
+    if (new Date(startDate) < new Date("2023-07-25")) {
+        totalUsersDay0PreJuly25 += totalUsersForThisCohort;
+        totalUsersDay1PreJuly25 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
+        totalUsersDay3PreJuly25 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
+    } else if (new Date(startDate) >= new Date("2023-07-25") && new Date(startDate) <= new Date("2023-09-20")) {
+        totalUsersDay0July25ToSep20 += totalUsersForThisCohort;
+        totalUsersDay1July25ToSep20 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
+        totalUsersDay3July25ToSep20 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
+    } else {
+        totalUsersDay0PostSep20 += totalUsersForThisCohort;
+        totalUsersDay1PostSep20 += (cohort.activityByDay[1] || 0) * totalUsersForThisCohort;
+        totalUsersDay3PostSep20 += (cohort.activityByDay[3] || 0) * totalUsersForThisCohort;
+    }
   }
-  
 
-    return {
-        d1Overall: ((totalUsersDay1 / totalUsersDay0) * 100).toFixed(2),
-        d3Overall: ((totalUsersDay3 / totalUsersDay0) * 100).toFixed(2),
+  return {
+      d1Overall: ((totalUsersDay1 / totalUsersDay0) * 100).toFixed(2),
+      d3Overall: ((totalUsersDay3 / totalUsersDay0) * 100).toFixed(2),
 
-        d1PreJuly25: ((totalUsersDay1PreJuly25 / totalUsersDay0PreJuly25) * 100).toFixed(2),
-        d3PreJuly25: ((totalUsersDay3PreJuly25 / totalUsersDay0PreJuly25) * 100).toFixed(2),
-        totalUsersPreJuly25: totalUsersDay0PreJuly25,
+      d1PreJuly25: ((totalUsersDay1PreJuly25 / totalUsersDay0PreJuly25) * 100).toFixed(2),
+      d3PreJuly25: ((totalUsersDay3PreJuly25 / totalUsersDay0PreJuly25) * 100).toFixed(2),
+      totalUsersPreJuly25: totalUsersDay0PreJuly25,
 
-        d1PostJuly24: ((totalUsersDay1PostJuly24 / totalUsersDay0PostJuly24) * 100).toFixed(2),
-        d3PostJuly24: ((totalUsersDay3PostJuly24 / totalUsersDay0PostJuly24) * 100).toFixed(2),
-        totalUsersPostJuly24: totalUsersDay0PostJuly24
-    };
+      d1July25ToSep20: ((totalUsersDay1July25ToSep20 / totalUsersDay0July25ToSep20) * 100).toFixed(2),
+      d3July25ToSep20: ((totalUsersDay3July25ToSep20 / totalUsersDay0July25ToSep20) * 100).toFixed(2),
+      totalUsersJuly25ToSep20: totalUsersDay0July25ToSep20,
+
+      d1PostSep20: ((totalUsersDay1PostSep20 / totalUsersDay0PostSep20) * 100).toFixed(2),
+      d3PostSep20: ((totalUsersDay3PostSep20 / totalUsersDay0PostSep20) * 100).toFixed(2),
+      totalUsersPostSep20: totalUsersDay0PostSep20
+  };
 }
+
 
 function generateMAUData() {
   let mauData = {};
