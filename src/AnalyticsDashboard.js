@@ -36,6 +36,7 @@ const AnalyticsDashboard = () => {
         '681167b9-6537-487a-a340-2d77245c080d',
         '6e590b5f-e429-4e3c-81d1-c0022241a56d', // testingsayapp@gmail.com
         '934e4272-61ec-4d7b-a489-1c17843392f3', // saytestingsay@gmail.com
+        '95eb1caa-89fc-46d9-8308-947d3f7f675e', // sayapptest@gmail.com
         '76eae254-4658-4cb0-bb6f-2c4e90905f46',
         'f2163b04-188a-4c7d-bb11-f939d0d214e9',
         '6b0a5dab-4571-4869-ac40-139d63b93d4e',
