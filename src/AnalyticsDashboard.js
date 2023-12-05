@@ -270,6 +270,67 @@ function generateActiveUsersData() {
   });
 }
 
+// Weekly Active Users
+function generateWAUData() {
+  let wauData = {};
+  let totalUsers = 0;
+  let totalWeeks = 0;
+
+  data.forEach((entry) => {
+    const { user, created_at } = entry;
+    const createdDate = new Date(created_at);
+
+    // Get the week number in the year for the entry
+    const year = createdDate.getFullYear();
+    const week = getWeekNumber(createdDate);
+    
+    const weekKey = `${year}-W${week.toString().padStart(2, '0')}`; // format as YYYY-WXX
+
+    if (!wauData[weekKey]) {
+      wauData[weekKey] = new Set();
+      totalWeeks++; // Increment the week count
+    }
+
+    wauData[weekKey].add(user);
+  });
+
+  // Sum up the total unique users
+  Object.values(wauData).forEach(users => {
+    totalUsers += users.size;
+  });
+
+  const averageUsersPerWeek = totalUsers / totalWeeks;
+
+  // Convert data to {week, count} format
+  return {
+    wauData: Object.entries(wauData).map(([week, users]) => {
+      return {
+        week,
+        count: users.size,
+      };
+    }),
+    averageUsersPerWeek: averageUsersPerWeek.toFixed(2) // Keep two decimal places
+  };
+}
+
+
+function getWeekNumber(d) {
+  // Copy date so don't modify original
+  d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  // Set to nearest Thursday: current date + 4 - day number
+  // Make Sunday's day number 7
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+  // Get first day of year
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+  // Calculate full weeks to nearest Thursday
+  const weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+  return weekNo;
+}
+
+const { wauData, averageUsersPerWeek } = generateWAUData();
+
+
+// User activity detail
 function generateUsersData() {
   let usersData = {};
 
@@ -838,6 +899,28 @@ function generateSessionData() {
   <Legend />
   <Bar dataKey="count" name="Active Users" fill={getRandomColor()} />
 </BarChart>
+
+<h2>Active Users Per Week</h2>
+<p>Average Weekly Active Users: {averageUsersPerWeek}</p>
+<BarChart
+  width={1500}
+  height={300}
+  data={wauData}
+  margin={{
+    top: 20,
+    right: 30,
+    left: 20,
+    bottom: 5,
+  }}
+>
+  <CartesianGrid strokeDasharray="3 3" />
+  <XAxis dataKey="week" />
+  <YAxis />
+  <Tooltip />
+  <Legend />
+  <Bar dataKey="count" name="Weekly Active Users" fill="#82ca9d" />
+</BarChart>
+
 
 <h2>Active Users Per Month</h2>
 <BarChart
